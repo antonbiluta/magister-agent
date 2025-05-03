@@ -63,7 +63,7 @@ release:
           --form "file=@$file" \
           "$CI_API_V4_URL/projects/$CI_PROJECT_ID/uploads")
 
-        FILE_URL=$(echo "$UPLOAD_RESPONSE" | grep -oP '"url":"\K[^"]+')
+        FILE_URL=$(echo "$UPLOAD_RESPONSE" | sed -n 's|.*"url":"\([^"]*\)".*|\1|p')
         FILE_NAME=$(basename "$file")
 
         echo "Registered upload at: $FILE_URL"
