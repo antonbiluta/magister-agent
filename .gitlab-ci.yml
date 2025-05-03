@@ -49,7 +49,7 @@ upload:
         FILENAME=$(basename "$file")
         echo "Uploading $FILENAME..."
 
-        curl --fail --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+        curl --fail --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
           --upload-file "$file" \
           "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$PACKAGE_NAME/$CI_COMMIT_TAG/$FILENAME"
 
