@@ -1,0 +1,18 @@
+# Chain RPC (broadcast_tx endpoint)
+chain_base: "http://chain-node1.biluta.ru"
+chain_rpc: "http://chain-node1.biluta.ru/broadcast_tx"
+
+filepath_node_id: "/root/.agent_node_id"
+
+# Public key string for RegisterNode
+pub_key: "pubkey1"
+
+# Heartbeat interval in seconds
+heartbeat_interval: 10
+
+# InfluxDB settings
+influx:
+  url: "http://influxdb:8086"
+  bucket: "metrics"
+  org: "myorg"
+  token: "admintoken123"
