@@ -5,8 +5,8 @@ stages:
 variables:
   BINARY_NAME: agent
   PACKAGE_NAME: "agent"
-  LINKS_FILE: "tmp/links.json"
   CHANGELOG_FILE: "tmp/changelog.txt"
+  LINKS_JSON_FILE: "tmp/links.json"
   GIT_STRATEGY: fetch
 
 build:
@@ -47,28 +47,28 @@ upload:
     - echo "[]" > "$LINKS_FILE"
 
     - |
+      for file in build/*; do
+        FILENAME=$(basename "$file")
+        FILE_URL="$CI_PROJECT_URL/-/packages/generic/$PACKAGE_NAME/$CI_COMMIT_TAG/$FILENAME"
+
+        curl --fail --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+          --upload-file "$file" \
+          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$PACKAGE_NAME/$CI_COMMIT_TAG/$FILENAME"
+
+        jq \
+          --arg name "$FILENAME" \
+          --arg url "$FILE_URL" \
+          '. += [{"name": $name, "url": $url}]' \
+          "$LINKS_JSON_FILE" > tmp/tmp.json && mv tmp/tmp.json "$LINKS_JSON_FILE"
+      done
+
+    - |
       PREV_TAG=$(git describe --tags --abbrev=0 $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
       if [ -n "$PREV_TAG" ]; then
         git log "$PREV_TAG"..HEAD --pretty=format:"- %s" > "$CHANGELOG_FILE"
       else
         git log --pretty=format:"- %s" > "$CHANGELOG_FILE"
       fi
-
-    - |
-      for file in build/*; do
-        FILENAME=$(basename "$file")
-        echo "\nUploading $FILENAME..."
-
-        curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN" \
-          --upload-file "$file" \
-          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$PACKAGE_NAME/$CI_COMMIT_TAG/$FILENAME"
-
-        jq \
-          --arg name "$FILENAME" \
-          --arg url "$CI_PROJECT_URL/-/packages/generic/$PACKAGE_NAME/$CI_COMMIT_TAG/$FILENAME" \
-          '. += [{"name": $name, "url": $url}]' \
-          "$LINKS_FILE" > tmp/links.tmp.json && mv tmp/links.tmp.json "$LINKS_FILE"
-      done
   artifacts:
     paths:
       - tmp/links.json
@@ -86,22 +86,14 @@ release:
     - upload
   script:
     - export DESCRIPTION="$(cat tmp/changelog.txt)"
-    - export LINKS_JSON=$(cat tmp/links.json)
-    - export LINK_0=$(echo "$LINKS_JSON" | jq -r '.[0] | @json')
 
-    - release-cli create \
-        --tag-name "$CI_COMMIT_TAG" \
-        --name "$CI_COMMIT_TAG" \
-        --description "$DESCRIPTION" \
-        --assets-link "$LINK_0"
-        
     - |
-      COUNT=$(echo "$LINKS_JSON" | jq 'length')
-      for i in $(seq 1 $(($COUNT - 1))); do
-        NAME=$(echo "$LINKS_JSON" | jq -r ".[$i].name")
-        URL=$(echo "$LINKS_JSON" | jq -r ".[$i].url")
-        curl --fail --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-          --form "name=$NAME" \
-          --form "url=$URL" \
-          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases/$CI_COMMIT_TAG/assets/links"
+      set -- --tag-name "$CI_COMMIT_TAG" --name "$CI_COMMIT_TAG" --description "$DESCRIPTION"
+
+      COUNT=$(jq length tmp/links.json)
+      for i in $(seq 0 $((COUNT - 1))); do
+        LINK=$(jq -c ".[$i]" tmp/links.json)
+        set -- "$@" --assets-link "$LINK"
       done
+
+      release-cli create "$@"
