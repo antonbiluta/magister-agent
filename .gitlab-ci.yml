@@ -70,4 +70,8 @@ release:
     - upload
   script:
     - ARGS=$(tr '\n' ' ' < tmp/args.txt)
-    - release-cli create --tag-name "$CI_COMMIT_TAG" --name "$CI_COMMIT_TAG" --description "Release $CI_COMMIT_TAG" $ARGS
+    - release-cli create --update \
+        --tag-name "$CI_COMMIT_TAG" \
+        --name "$CI_COMMIT_TAG" \
+        --description "Release $CI_COMMIT_TAG" \
+        $ARGS
