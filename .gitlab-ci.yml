@@ -45,7 +45,13 @@ upload:
     - mkdir -p tmp
 
     - |
-      PREV_TAG=$(git describe --tags --abbrev=0 $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
+      TAG_LIST=$(git rev-list --tags --skip=1 --max-count=1 2>/dev/null || true)
+      if [ -n "$TAG_LIST" ]; then
+        PREV_TAG=$(git describe --tags --abbrev=0 "$TAG_LIST")
+      else
+        PREV_TAG=""
+      fi
+      
       if [ -n "$PREV_TAG" ]; then
         git log "$PREV_TAG"..HEAD --pretty=format:"- %s" > "$CHANGELOG_FILE"
       else
