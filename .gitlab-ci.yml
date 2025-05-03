@@ -4,6 +4,8 @@ stages:
 
 variables:
   BINARY_NAME: agent
+  LINKS_FILE: "tmp/links.json"
+  FULL_RELEASE_JSON: "tmp/full-release.json"
   GIT_STRATEGY: fetch
 
 build:
@@ -51,7 +53,6 @@ upload:
           --upload-file "$file" \
           "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$PACKAGE_NAME/$CI_COMMIT_TAG/$FILENAME"
 
-        # Добавляем ссылку в JSON
         jq \
           --arg name "$FILENAME" \
           --arg url "$CI_PROJECT_URL/-/packages/generic/$PACKAGE_NAME/$CI_COMMIT_TAG/$FILENAME" \
