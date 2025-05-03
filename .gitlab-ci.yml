@@ -7,23 +7,19 @@ stages:
 variables:
   BINARY_NAME: agent
   GIT_STRATEGY: fetch
-  GOOS:
-    - linux
-    - windows
-  GOARCH:
-    - amd64
 
 build:
   stage: build
+  parallel:
+    matrix:
+      - GOOS: "linux"
+        GOARCH: "amd64"
+      - GOOS: "windows"
+        GOARCH: "amd64"
   script:
     - mkdir -p build
-    - for os in $GOOS; do 
-        for arch in $GOARCH; do \
-          echo "Building for $os/$arch"; \
-          CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -ldflags "-s -w" \
-            -o build/${BINARY_NAME}_$os_$arch main.go
-        done
-      done
+    - echo "Building for $GOOS/$GOARCH"
+    - CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -ldflags "-s -w" -o build/${BINARY_NAME}_$GOOS_$GOARCH main.go
   artifacts:
     paths:
       - build/
