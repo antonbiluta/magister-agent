@@ -16,14 +16,16 @@ build:
     matrix:
       - GOOS: "linux"
         GOARCH: "amd64"
+        EXT: ""
       - GOOS: "windows"
         GOARCH: "amd64"
+        EXT: ".exe"
   script:
     - export GOOS=$GOOS
     - export GOARCH=$GOARCH
     - mkdir -p build
     - echo "Building for $GOOS/$GOARCH"
-    - CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -ldflags "-s -w" -o build/${BINARY_NAME}_${GOOS}_${GOARCH} main.go
+    - CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -ldflags "-s -w" -o build/${BINARY_NAME}_${GOOS}_${GOARCH}${EXT} main.go
     - ls -la build/
   artifacts:
     paths:
