@@ -44,7 +44,7 @@ upload:
   script:
     - apk add --no-cache jq git
     - mkdir -p tmp
-    - echo "[]" > "$LINKS_FILE"
+    - echo "[]" > "$LINKS_JSON_FILE"
 
     - |
       for file in build/*; do
