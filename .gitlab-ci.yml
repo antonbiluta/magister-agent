@@ -18,9 +18,11 @@ build:
       - GOOS: "windows"
         GOARCH: "amd64"
   script:
+    - export GOOS=$GOOS
+    - export GOARCH=$GOARCH
     - mkdir -p build
     - echo "Building for $GOOS/$GOARCH"
-    - CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -ldflags "-s -w" -o build/${BINARY_NAME}_$GOOS_$GOARCH main.go
+    - CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -ldflags "-s -w" -o build/${BINARY_NAME}_${GOOS}_${GOARCH} main.go
     - ls -la build/
   artifacts:
     paths:
@@ -52,6 +54,7 @@ release:
         "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases"
     - |
       for file in build/*; do
+        echo "filename=$file"
         curl --silent --show-error --fail --location \
           --request POST \
           --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
