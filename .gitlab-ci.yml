@@ -44,23 +44,7 @@ upload:
     - apk add --no-cache jq git
     - mkdir -p tmp
 
-    - |
-      TAG_LIST=$(git rev-list --tags --skip=1 --max-count=1 2>/dev/null || true)
-      if [ -n "$TAG_LIST" ]; then
-        PREV_TAG=$(git describe --tags --abbrev=0 "$TAG_LIST")
-      else
-        PREV_TAG=""
-      fi
-      
-      if [ -n "$PREV_TAG" ]; then
-        git log "$PREV_TAG"..HEAD --pretty=format:"- %s" > "$CHANGELOG_FILE"
-      else
-        git log --pretty=format:"- %s" > "$CHANGELOG_FILE"
-      fi
-    
-    - DESCRIPTION_ESCAPED=$(sed ':a;N;$!ba;s/\n/\\n/g' "$CHANGELOG_FILE")
-
-    - echo "ARGS=(--tag-name \"$CI_COMMIT_TAG\" --name \"$CI_COMMIT_TAG\" --description \"$DESCRIPTION_ESCAPED\")" > "$ARGS_FILE"
+    - echo "ARGS=(--tag-name \"$CI_COMMIT_TAG\" --name \"$CI_COMMIT_TAG\" --description \"Release '$CI_COMMIT_TAG'\")" > "$ARGS_FILE"
 
     - |
       for file in build/*; do
