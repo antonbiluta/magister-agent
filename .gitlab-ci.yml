@@ -22,10 +22,10 @@ build:
     - echo "Building for $GOOS/$GOARCH"
     - CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -ldflags "-s -w" -o build/${BINARY_NAME}_$GOOS_$GOARCH main.go
     - ls -la build/
+    - echo "test artifact" > build/hello.txt
   artifacts:
     paths:
-      - build/
-    expire_in: 1d
+      - build/hello.txt
   only:
     - branches
     - tags
