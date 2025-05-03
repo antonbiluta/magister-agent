@@ -1,5 +1,6 @@
 stages:
   - build
+  - prepare
   - release
 
 variables:
@@ -31,11 +32,10 @@ build:
       - build/
     expire_in: 1d
   only:
-    - branches
     - tags
 
 upload:
-  stage: release
+  stage: prepare
   tags:
     - docker
   only:
@@ -57,6 +57,8 @@ upload:
 
         echo "ARGS+=(--assets-link '{\"name\":\"$FILENAME\",\"url\":\"$FILE_URL\"}')" >> "$ARGS_FILE"
       done
+
+    - cat "$ARGS_FILE"
   artifacts:
     paths:
       - tmp/args.sh
