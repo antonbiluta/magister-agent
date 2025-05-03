@@ -33,7 +33,6 @@ build:
     - tags
 
 upload:
-  image: curlimages/curl:latest
   stage: release
   tags:
     - docker
