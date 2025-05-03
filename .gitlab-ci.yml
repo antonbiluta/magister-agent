@@ -4,6 +4,7 @@ stages:
 
 variables:
   BINARY_NAME: agent
+  PACKAGE_NAME: "agent"
   LINKS_FILE: "tmp/links.json"
   FULL_RELEASE_JSON: "tmp/full-release.json"
   GIT_STRATEGY: fetch
@@ -49,7 +50,7 @@ upload:
         FILENAME=$(basename "$file")
         echo "Uploading $FILENAME..."
 
-        curl --fail --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN" \
           --upload-file "$file" \
           "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/$PACKAGE_NAME/$CI_COMMIT_TAG/$FILENAME"
 
