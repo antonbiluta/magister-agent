@@ -73,6 +73,9 @@ jobs:
           sed "s/@TAG@/${TAG}/g" install.sh.in > pages/$TAG/install.sh
           chmod +x pages/$TAG/install.sh
 
+      - name: Generate CNAME
+        run: echo "cdn-agent.biluta.ru" > pages/CNAME
+
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
