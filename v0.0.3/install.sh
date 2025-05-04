@@ -62,7 +62,9 @@ else
 fi
 
 # ==== Systemd service ====
-echo "Installing systemd service..."
+INSTALL_USER=$(logname 2>/dev/null || echo "$USER")
+echo "🔧 Creating systemd service as user: $INSTALL_USER"
+
 sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
 Description=Home Server Agent
@@ -71,7 +73,8 @@ After=network.target
 [Service]
 ExecStart=$INSTALL_DIR/agent --config $CONFIG_PATH
 Restart=on-failure
-User=root
+User=$INSTALL_USER
+WorkingDirectory=$BASE_DIR
 
 [Install]
 WantedBy=multi-user.target
@@ -89,9 +92,13 @@ for i in {1..10}; do
   sleep 1
 done
 
-if [ -f "$NODE_ID_FILE" ]; then
+if [ -r "$NODE_ID_FILE" ]; then
   NODE_ID=$(cat "$NODE_ID_FILE")
   echo "Agent installed. Node ID: $NODE_ID"
+elif [ -r "$NODE_ID_FILE" ] && command -v sudo &>/dev/null; then
+  NODE_ID=$(sudo cat "$NODE_ID_FILE")
+  echo "Agent installed. Node ID: $NODE_ID"
 else
-  echo "Node ID file not created within timeout."
+  echo "⚠️ Node ID file not created within timeout."
+  exit 1
 fi
