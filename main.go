@@ -22,11 +22,10 @@ import (
 )
 
 type Config struct {
-	ChainBase         string `yaml:"chain_base"`
-	ChainBroadcastRPC string `yaml:"chain_rpc"`
-	FilePathNodeId    string `yaml:"filepath_node_id"`
-	PubKey            string `yaml:"pub_key"`
-	HeartbeatInterval int    `yaml:"heartbeat_interval"`
+	ChainBaseNodes    []string `yaml:"chain_base_nodes"`
+	FilePathNodeId    string   `yaml:"filepath_node_id"`
+	PubKey            string   `yaml:"pub_key"`
+	HeartbeatInterval int      `yaml:"heartbeat_interval"`
 	Influx            struct {
 		URL    string `yaml:"url"`
 		Bucket string `yaml:"bucket"`
@@ -50,6 +49,7 @@ type CommandRequest struct {
 	NodeID  string   `json:"targetNode"`
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
+	OwnerID string   `json:"ownerId"`
 }
 
 type CommandResult struct {
@@ -59,6 +59,7 @@ type CommandResult struct {
 	Success   bool   `json:"success"`
 	Output    string `json:"output"`
 	Timestamp int64  `json:"timestamp"`
+	OwnerID   string `json:"ownerId"`
 }
 
 var (
@@ -95,7 +96,16 @@ func getOrCreateNodeID() string {
 	return id
 }
 
-// Mzv96FsiiVxj27SiOVQm7j7ZY9RD1wL-ICvwbHeyqcCUHGVMBnZq1XzCazlCTy8KB2s3Bb2dQZnk4IxN7KjbiQ==
+func postToAnyNode(path string, body []byte) error {
+	for _, base := range cfg.ChainBaseNodes {
+		resp, err := http.Post(base+path, "application/json", bytes.NewReader(body))
+		if err == nil && resp.StatusCode == 200 {
+			resp.Body.Close()
+			return nil
+		}
+	}
+	return fmt.Errorf("failed to post to any node")
+}
 
 func collectMetrics() (*Metrics, error) {
 	ts := time.Now().Unix()
@@ -129,7 +139,6 @@ func collectMetrics() (*Metrics, error) {
 }
 
 func pushToInflux(m *Metrics) {
-	// Line protocol: measurement,tag=value fields timestamp
 	tsNano := time.Now().UnixNano()
 	line := fmt.Sprintf(
 		"server_metrics,nodeID=%s cpu=%f,mem_total=%d,mem_available=%d,disk_total=%d,disk_used=%d,net_sent=%d,net_recv=%d %d",
@@ -175,25 +184,25 @@ func sendHeartbeat() {
 		"timestamp":   time.Now().Unix(),
 	}
 	body, _ := json.Marshal(tx)
-	if _, err := http.Post(cfg.ChainBroadcastRPC, "application/json", bytes.NewBuffer(body)); err != nil {
+	if err := postToAnyNode("/broadcast_tx", body); err != nil {
 		log.Printf("Heartbeat error: %v", err)
 	}
 }
 
 func fetchCommands() []CommandRequest {
-	url := fmt.Sprintf("%s/commands?nodeID=%s", cfg.ChainBase, nodeID)
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Printf("Cmd fetch err: %v", err)
-		return nil
+	for _, base := range cfg.ChainBaseNodes {
+		url := fmt.Sprintf("%s/commands?nodeID=%s", base, nodeID)
+		resp, err := http.Get(url)
+		if err != nil {
+			continue
+		}
+		defer resp.Body.Close()
+		var cmds []CommandRequest
+		if err := json.NewDecoder(resp.Body).Decode(&cmds); err == nil {
+			return cmds
+		}
 	}
-	defer resp.Body.Close()
-	var cmds []CommandRequest
-	if err := json.NewDecoder(resp.Body).Decode(&cmds); err != nil {
-		log.Printf("Cmd decode err: %v", err)
-		return nil
-	}
-	return cmds
+	return nil
 }
 
 func handleCommands(cmds []CommandRequest) {
@@ -206,11 +215,26 @@ func handleCommands(cmds []CommandRequest) {
 			Success:   err == nil,
 			Output:    string(out),
 			Timestamp: time.Now().Unix(),
+			OwnerID:   c.OwnerID,
 		}
 		b, _ := json.Marshal(result)
-		if _, err := http.Post(cfg.ChainBroadcastRPC, "application/json", bytes.NewBuffer(b)); err != nil {
+		if err := postToAnyNode("/broadcast_tx", b); err != nil {
 			log.Printf("Result send err: %v", err)
 		}
+	}
+}
+
+func registerNode() {
+	tx := map[string]interface{}{
+		"type":   "RegisterNode",
+		"nodeID": nodeID,
+		"pubKey": cfg.PubKey,
+	}
+	b, _ := json.Marshal(tx)
+	if err := postToAnyNode("/broadcast_tx", b); err != nil {
+		log.Printf("RegisterNode error: %v", err)
+	} else {
+		log.Printf("✅ Registered nodeID: %s", nodeID)
 	}
 }
 
@@ -224,22 +248,13 @@ func main() {
 	firstRun := !fileExists(cfg.FilePathNodeId)
 	nodeID = getOrCreateNodeID()
 	if firstRun {
-		reg := map[string]interface{}{
-			"type":   "RegisterNode",
-			"nodeID": nodeID,
-			"pubKey": cfg.PubKey,
-		}
-		b, _ := json.Marshal(reg)
-		if _, err := http.Post(cfg.ChainBroadcastRPC, "application/json", bytes.NewBuffer(b)); err != nil {
-			log.Printf("RegisterNode error: %v", err)
-		}
+		registerNode()
 	}
 
 	ticker := time.NewTicker(time.Duration(cfg.HeartbeatInterval) * time.Second)
 	defer ticker.Stop()
 	for range ticker.C {
 		sendHeartbeat()
-		cmds := fetchCommands()
-		handleCommands(cmds)
+		handleCommands(fetchCommands())
 	}
 }

@@ -1,24 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Параметры
-REPO_URL="https://gitlab.biluta.ru/magister/agent"      # заменить на ваш репозиторий
-RELEASE_TAG="latest"                              # или конкретный тэг
+# ==== Настройки ====
+REPO_URL="https://gitlab.biluta.ru/magister/agent"
+RELEASE_TAG="latest"
 INSTALL_DIR="/usr/local/bin"
 CONFIG_PATH="/etc/agent/config.yaml"
 NODE_ID_FILE="${HOME}/.agent_node_id"
+SERVICE_FILE="/etc/systemd/system/agent.service"
 
-# Определим OS и ARCH
+# ==== Определение платформы ====
 OS=$(uname | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 case "$ARCH" in
   x86_64) ARCH="amd64";;
   aarch64) ARCH="arm64";;
-  *) echo "Unsupported architecture: $ARCH"; exit 1;;
+  *) echo "Unsupported architecture: $ARCH" && exit 1;;
 esac
 
-# Имя бинарника
 BIN_NAME="agent_${OS}_${ARCH}"
+DOWNLOAD_URL="${REPO_URL}/-/releases/${RELEASE_TAG}/downloads/${BIN_NAME}"
 
 # Скачиваем
 echo "Downloading agent for $OS/$ARCH..."
