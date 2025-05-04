@@ -11,6 +11,11 @@ CONFIG_PATH="$BASE_DIR/config.yaml"
 NODE_ID_FILE="$BASE_DIR/.agent_node_id"
 SERVICE_FILE="/etc/systemd/system/agent.service"
 
+if [ ! -d "$BASE_DIR" ]; then
+  echo "📂 Creating base directory: $BASE_DIR"
+  mkdir -p "$BASE_DIR"
+fi
+
 # ==== Определение платформы ====
 OS=$(uname | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
@@ -27,8 +32,8 @@ DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/${BINARY_NAME}
 echo "Downloading agent ($OS/$ARCH)..."
 curl -fsSL "$DOWNLOAD_URL" -o /tmp/agent
 chmod +x /tmp/agent
-echo "Installing to $INSTALL_DIR..."
-sudo mv /tmp/agent "$INSTALL_DIR"
+echo "Installing to $INSTALL_DIR/agent..."
+sudo mv /tmp/agent "$INSTALL_DIR/agent"
 
 
 # ==== Конфиг ====
@@ -64,7 +69,7 @@ Description=Home Server Agent
 After=network.target
 
 [Service]
-ExecStart=$INSTALL_DIR --config $CONFIG_PATH
+ExecStart=$INSTALL_DIR/agent --config $CONFIG_PATH
 Restart=on-failure
 User=root
 
@@ -84,9 +89,13 @@ for i in {1..10}; do
   sleep 1
 done
 
-if [ -f "$NODE_ID_FILE" ]; then
+if [ -r "$NODE_ID_FILE" ]; then
   NODE_ID=$(cat "$NODE_ID_FILE")
   echo "Agent installed. Node ID: $NODE_ID"
+elif [ -r "$NODE_ID_FILE" ] && command -v sudo &>/dev/null; then
+  NODE_ID=$(sudo cat "$NODE_ID_FILE")
+  echo "Agent installed. Node ID: $NODE_ID"
 else
-  echo "Node ID file not created within timeout."
+  echo "⚠️ Node ID file not created within timeout."
+  exit 1
 fi
