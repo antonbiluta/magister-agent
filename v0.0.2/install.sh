@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TAG="v0.0.1"
+TAG="v0.0.2"
 
 # ==== Настройки ====
 REPO="antonbiluta/magister-agent"
