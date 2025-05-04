@@ -22,24 +22,26 @@ BIN_NAME="agent_${OS}_${ARCH}"
 DOWNLOAD_URL="${REPO_URL}/-/releases/${RELEASE_TAG}/downloads/${BIN_NAME}"
 
 # Скачиваем
-echo "Downloading agent for $OS/$ARCH..."
-DOWNLOAD_URL="${REPO_URL}/-/releases/${RELEASE_TAG}/downloads/${BIN_NAME}"
+echo "Downloading agent ($OS/$ARCH)..."
 curl -fsSL "$DOWNLOAD_URL" -o /tmp/agent
 chmod +x /tmp/agent
 
-# Устанавливаем
-echo "Installing to $INSTALL_DIR/agent"
-sudo mv /tmp/agent $INSTALL_DIR/agent
+echo "Installing to $INSTALL_DIR/agent..."
+sudo mv /tmp/agent "$INSTALL_DIR/agent"
 
-# Создаем директорию конфигов, если нужно
-sudo mkdir -p "$(dirname $CONFIG_PATH)"
 
-# Если конфиг не существует, создаём шаблон
+# ==== Конфиг ====
+echo "Ensuring config directory exists..."
+sudo mkdir -p "$(dirname "$CONFIG_PATH")"
+
 if [ ! -f "$CONFIG_PATH" ]; then
-  sudo tee $CONFIG_PATH > /dev/null <<EOF
-# Config for Agent
-chain_base: "http://chain-node1.biluta.ru"
-chain_rpc:  "http://chain-node1.biluta.ru/broadcast_tx"
+  echo "Creating config at $CONFIG_PATH"
+  sudo tee "$CONFIG_PATH" > /dev/null <<EOF
+# Agent configuration
+chain_base_nodes:
+  - http://localhost:40081
+  - http://localhost:40082
+  - http://localhost:40083
 filepath_node_id: "$NODE_ID_FILE"
 pub_key: "your_pub_key_here"
 heartbeat_interval: 10
@@ -49,20 +51,20 @@ influx:
   org: "myorg"
   token: "admintoken123"
 EOF
-  echo "Config created at $CONFIG_PATH"
+else
+  echo "Config already exists: $CONFIG_PATH"
 fi
 
-# Запускаем агент как сервис
-echo "Creating systemd service..."
-SERVICE_FILE="/etc/systemd/system/agent.service"
-sudo tee $SERVICE_FILE > /dev/null <<EOF
+# ==== Systemd service ====
+echo "Installing systemd service..."
+sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
 Description=Home Server Agent
 After=network.target
 
 [Service]
 ExecStart=$INSTALL_DIR/agent --config $CONFIG_PATH
-Restart=always
+Restart=on-failure
 User=root
 
 [Install]
@@ -76,10 +78,14 @@ sudo systemctl restart agent
 
 # Ждём, пока агент напишет file .agent_node_id
 echo "Waiting for node ID file..."
-while [ ! -f "$NODE_ID_FILE" ]; do
+for i in {1..10}; do
+  [ -f "$NODE_ID_FILE" ] && break
   sleep 1
 done
 
-NODE_ID=$(cat "$NODE_ID_FILE")
-echo "Agent installed. Node ID: $NODE_ID"
-EOF
+if [ -f "$NODE_ID_FILE" ]; then
+  NODE_ID=$(cat "$NODE_ID_FILE")
+  echo "Agent installed. Node ID: $NODE_ID"
+else
+  echo "Node ID file not created within timeout."
+fi
