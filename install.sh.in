@@ -6,9 +6,9 @@ TAG="@TAG@"
 # ==== Настройки ====
 REPO="antonbiluta/magister-agent"
 BASE_DIR = "${HOME}/biluta-magister/agent"
-INSTALL_DIR="${BASE_DIR}"
-CONFIG_PATH="${BASE_DIR}/config.yaml"
-NODE_ID_FILE="${BASE_DIR}/.agent_node_id"
+INSTALL_DIR="$BASE_DIR"
+CONFIG_PATH="$BASE_DIR/config.yaml"
+NODE_ID_FILE="$BASE_DIR/.agent_node_id"
 SERVICE_FILE="/etc/systemd/system/agent.service"
 
 # ==== Определение платформы ====
