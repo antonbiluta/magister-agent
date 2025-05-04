@@ -62,7 +62,9 @@ else
 fi
 
 # ==== Systemd service ====
-echo "Installing systemd service..."
+INSTALL_USER=$(logname 2>/dev/null || echo "$USER")
+echo "🔧 Creating systemd service as user: $INSTALL_USER"
+
 sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
 Description=Home Server Agent
@@ -71,7 +73,8 @@ After=network.target
 [Service]
 ExecStart=$INSTALL_DIR/agent --config $CONFIG_PATH
 Restart=on-failure
-User=root
+User=$INSTALL_USER
+WorkingDirectory=$BASE_DIR
 
 [Install]
 WantedBy=multi-user.target
