@@ -5,11 +5,16 @@ TAG="v0.0.1"
 
 # ==== Настройки ====
 REPO="antonbiluta/magister-agent"
-BASE_DIR = "${HOME}/biluta-magister/agent"
+BASE_DIR="${HOME}/biluta-magister/agent"
 INSTALL_DIR="$BASE_DIR"
 CONFIG_PATH="$BASE_DIR/config.yaml"
 NODE_ID_FILE="$BASE_DIR/.agent_node_id"
 SERVICE_FILE="/etc/systemd/system/agent.service"
+
+if [ ! -d "$BASE_DIR" ]; then
+  echo "📂 Creating base directory: $BASE_DIR"
+  mkdir -p "$BASE_DIR"
+fi
 
 # ==== Определение платформы ====
 OS=$(uname | tr '[:upper:]' '[:lower:]')
@@ -27,8 +32,8 @@ DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/${BINARY_NAME}
 echo "Downloading agent ($OS/$ARCH)..."
 curl -fsSL "$DOWNLOAD_URL" -o /tmp/agent
 chmod +x /tmp/agent
-echo "Installing to $INSTALL_DIR..."
-sudo mv /tmp/agent "$INSTALL_DIR"
+echo "Installing to $INSTALL_DIR/agent..."
+sudo mv /tmp/agent "$INSTALL_DIR/agent"
 
 
 # ==== Конфиг ====
@@ -64,7 +69,7 @@ Description=Home Server Agent
 After=network.target
 
 [Service]
-ExecStart=$INSTALL_DIR --config $CONFIG_PATH
+ExecStart=$INSTALL_DIR/agent --config $CONFIG_PATH
 Restart=on-failure
 User=root
 
