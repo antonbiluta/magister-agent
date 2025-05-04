@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -240,7 +241,10 @@ func registerNode() {
 
 func main() {
 	var err error
-	cfg, err = loadConfig("config.yaml")
+	var configPath string
+	flag.StringVar(&configPath, "config", "config.yaml", "Path to config.yaml")
+	flag.Parse()
+	cfg, err = loadConfig(configPath)
 	if err != nil {
 		log.Fatalf("Config error: %v", err)
 	}
