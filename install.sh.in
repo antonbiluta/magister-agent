@@ -52,7 +52,7 @@ filepath_node_id: "$NODE_ID_FILE"
 pub_key: "your_pub_key_here"
 heartbeat_interval: 10
 influx:
-  url: "http://influxdb:8086"
+  url: "https://influxdb.biluta.ru"
   bucket: "metrics"
   org: "myorg"
   token: "admintoken123"
