@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+TAG="@TAG@"
+
 # ==== Настройки ====
-REPO_URL="https://gitlab.biluta.ru/magister/agent"
-RELEASE_TAG="latest"
+REPO="antonbiluta/magister-agent"
 INSTALL_DIR="/usr/local/bin"
 CONFIG_PATH="/etc/agent/config.yaml"
 NODE_ID_FILE="${HOME}/.agent_node_id"
@@ -13,19 +14,18 @@ SERVICE_FILE="/etc/systemd/system/agent.service"
 OS=$(uname | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 case "$ARCH" in
-  x86_64) ARCH="amd64";;
-  aarch64) ARCH="arm64";;
-  *) echo "Unsupported architecture: $ARCH" && exit 1;;
+  x86_64) ARCH="amd64" ;;
+  aarch64) ARCH="arm64" ;;
+  *) echo "❌ Unsupported architecture: $ARCH" && exit 1 ;;
 esac
 
-BIN_NAME="agent_${OS}_${ARCH}"
-DOWNLOAD_URL="${REPO_URL}/-/releases/${RELEASE_TAG}/downloads/${BIN_NAME}"
+BINARY_NAME="agent_${OS}_${ARCH}"
+DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/${BINARY_NAME}"
 
-# Скачиваем
+# ==== Скачивание и установка ====
 echo "Downloading agent ($OS/$ARCH)..."
 curl -fsSL "$DOWNLOAD_URL" -o /tmp/agent
 chmod +x /tmp/agent
-
 echo "Installing to $INSTALL_DIR/agent..."
 sudo mv /tmp/agent "$INSTALL_DIR/agent"
 
@@ -39,9 +39,9 @@ if [ ! -f "$CONFIG_PATH" ]; then
   sudo tee "$CONFIG_PATH" > /dev/null <<EOF
 # Agent configuration
 chain_base_nodes:
-  - http://localhost:40081
-  - http://localhost:40082
-  - http://localhost:40083
+  - https://chain-node1.biluta.ru
+  - https://chain-node2.biluta.ru
+  - https://chain-node3.biluta.ru
 filepath_node_id: "$NODE_ID_FILE"
 pub_key: "your_pub_key_here"
 heartbeat_interval: 10
